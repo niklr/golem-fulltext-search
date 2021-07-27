@@ -41,3 +41,61 @@ sudo ya-runtime-dbg \
     --task-package docker-golem-fulltext-search-latest-cd09f6be53.gvmi \
     --workdir /tmp/workdir
 ```
+
+## Examples
+
+Some sample text files are located in `service/data/`
+
+Entering the search term `golem` will return the following result:
+
+```
+[
+   {
+      "filename":"testfile3.txt",
+      "lines":[
+         {
+            "line":1,
+            "positions":[
+               17,
+               73
+            ]
+         }
+      ]
+   },
+   {
+      "filename":"testfile2.txt",
+      "lines":[
+         {
+            "line":1,
+            "positions":[
+               13
+            ]
+         },
+         {
+            "line":0,
+            "positions":[
+               0
+            ]
+         }
+      ]
+   }
+]
+```
+
+Entering the search term `network` will return the following result:
+
+```
+[
+   {
+      "filename":"testfile2.txt",
+      "lines":[
+         {
+            "line":0,
+            "positions":[
+               6
+            ]
+         }
+      ]
+   }
+]
+```
