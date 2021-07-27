@@ -1,0 +1,2 @@
+Golem Network is a cloud computing power service where everyone can develop, manage and execute workloads in an unstoppable, inexpensive and censorship-free environment.
+Since Beta.2 Golem supports a new model of computation – services.

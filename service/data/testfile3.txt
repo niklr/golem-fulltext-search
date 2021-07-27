@@ -1,0 +1,3 @@
+In contrast with batch tasks, services are expected to be long-running processes that don't have any natural completion point but rather are started and stopped on explicit command. 
+The goal of this Golem project is to build a full-text search service on Golem. 
+The service would allow its users to perform search queries over a corpus of documents submitted by the requestor during deployment.
