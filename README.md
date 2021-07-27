@@ -22,23 +22,22 @@ Since Beta.2 Golem supports a new model of computation – services. In contrast
 ## Publish image
 
 - gvmkit-build golem-fulltext-search:latest --push
-
--> success. hash link ...
-
+    - success. hash link ...
 - replace `image_hash` with new hash link in `requestor.py`
 
 ## Run
 
 - Run yagna daemon as described [here](https://handbook.golem.network/requestor-tutorials/flash-tutorial-of-requestor-development)
 - YAGNA_APPKEY={YOUR_KEY} ./requestor.py 
-    - (e.g. YAGNA_APPKEY=c6b87104451c45cc91e1e76204da75a4 ./requestor.py)- YAGNA_APPKEY={YOUR_KEY} ./requestor.py 
     - (e.g. YAGNA_APPKEY=c6b87104451c45cc91e1e76204da75a4 ./requestor.py)
 
 ## Debug/test
 
 - ./service/test.py
 
+```
 sudo ya-runtime-dbg \
     --runtime ~/.local/lib/yagna/plugins/ya-runtime-vm/ya-runtime-vm \
     --task-package docker-golem-fulltext-search-latest-cd09f6be53.gvmi \
     --workdir /tmp/workdir
+```
