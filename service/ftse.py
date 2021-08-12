@@ -36,13 +36,16 @@ class FtseLineResult:
 
 
 class FullTextSearchEngine:
+    ix = None
+    fieldname = "content"
+
     def init_index(self, in_path: str, out_path: str):
         index_path = self.get_index_path(out_path)
         if os.path.exists(index_path):
             shutil.rmtree(index_path)
         os.mkdir(index_path)
-        ix = create_in(index_path, SCHEMA)
-        writer = ix.writer()
+        self.ix = create_in(index_path, SCHEMA)
+        writer = self.ix.writer()
         in_path = IN_PATH if in_path.isspace() == True else in_path
         for filename in os.listdir(in_path):
             with open(os.path.join(in_path, filename)) as f:
@@ -61,10 +64,10 @@ class FullTextSearchEngine:
         return index_path
 
     # Source: https://github.com/mchaput/whoosh/blob/main/src/whoosh/highlight.py
-    def get_positions(self, hitobj: Hit, fieldname: str):
+    def get_positions(self, hitobj: Hit):
         results = hitobj.results
         schema = results.searcher.schema
-        field = schema[fieldname]
+        field = schema[self.fieldname]
         from_bytes = field.from_bytes
 
         if not results.has_matched_terms():
@@ -72,12 +75,12 @@ class FullTextSearchEngine:
 
         # Get the terms searched for/matched in this field
         bterms = (term for term in results.matched_terms()
-                  if term[0] == fieldname)
+                  if term[0] == self.fieldname)
 
         # Convert bytes to unicode
         words = frozenset(from_bytes(term[1]) for term in bterms)
-        analyzer = hitobj.searcher.schema[fieldname].analyzer
-        tokens = analyzer(hitobj[fieldname], positions=True,
+        analyzer = hitobj.searcher.schema[self.fieldname].analyzer
+        tokens = analyzer(hitobj[self.fieldname], positions=True,
                           chars=True, mode="index", removestops=False)
         tokens = set_matched_filter(tokens, words)
         positions = list()
@@ -95,15 +98,13 @@ class FullTextSearchEngine:
     def obj_dict(self, obj):
         return obj.__dict__
 
-    def search(self, out_path: str, term: str):
-        ix = open_dir(self.get_index_path(out_path))
-        with ix.searcher() as searcher:
-            fieldname = "content"
-            query = QueryParser(fieldname, ix.schema).parse(term)
+    def search(self, term: str):
+        with self.ix.searcher() as searcher:
+            query = QueryParser(self.fieldname, self.ix.schema).parse(term)
             search_result = searcher.search(query, terms=True)
             results = dict()
             for result in search_result:
-                positions = self.get_positions(result, fieldname)
+                positions = self.get_positions(result)
                 filename = result['path']
                 if filename in results:
                     results[filename].lines.append(
@@ -133,7 +134,7 @@ def init():
 
 
 def search(term: str):
-    result = ftse.search(OUT_PATH.as_posix(), term)
+    result = ftse.search(term)
     print(result)
 
 
