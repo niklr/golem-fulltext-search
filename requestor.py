@@ -58,11 +58,7 @@ class FtseService(Service):
             future_results = yield self._ctx.commit()
             results = await future_results
             for x in range(len(results)):
-                print(results[x].stdout)
-
-    async def shutdown(self):
-        # handler reponsible for executing operations on shutdown
-        yield self._ctx.commit()            
+                print(results[x].stdout)           
 
 
 async def main(subnet_tag, running_time, driver=None, network=None):
