@@ -5,7 +5,7 @@ Golem Network is a cloud computing power service where everyone can develop, man
 Since Beta.2 Golem supports a new model of computation – services. In contrast with batch tasks, services are expected to be long-running processes that don't have any natural completion point but rather are started and stopped on explicit command. The goal of this project is to build a full-text search service on Golem. The service allows its users to perform search queries over a corpus of documents submitted by the requestor during deployment.
 
 <h1 align="center">
-	<img src="assets/demo.gif" alt="Golem Full-text Search Engine Demo">
+	<img src="assets/demo_v2.gif" alt="Golem Full-text Search Engine Demo">
 </h1>
 
 ## Init
