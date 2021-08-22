@@ -1,4 +1,5 @@
 yapapi==0.6.2
 git+https://github.com/golemfactory/yapapi-service-manager@b427d79#egg=yapapi_service_manager
 gvmkit-build
-whoosh
+rpyc==5.0.1
+whoosh==2.7.4

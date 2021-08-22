@@ -21,11 +21,12 @@ from utils import (
 )
 
 class FtseService(Service):
-    FTSE_SERVICE = "/golem/run/ftse.py"
+    FTSE_SERVICE_CLIENT = "/golem/run/ftse_client.py"
+    FTSE_SERVICE_SERVER = "/golem/run/ftse_server.py"
 
     @classmethod
     async def get_payload(cls):
-        image_hash = "ec8e6cf20c6ba8d78ad0db23ccfcc5155586e88ca798caa6924328d2"
+        image_hash = "621d07c540a0c55020a225aaa2030da45379300e4b8f77ec081dbd1c"
         return await vm.repo(image_hash=image_hash)
 
     async def start(self):
@@ -33,9 +34,21 @@ class FtseService(Service):
         self._ctx.send_file("./service/data/testfile1.txt", "/golem/in/testfile1.txt")
         self._ctx.send_file("./service/data/testfile2.txt", "/golem/in/testfile2.txt")
         self._ctx.send_file("./service/data/testfile3.txt", "/golem/in/testfile3.txt")
-        self._ctx.run(self.FTSE_SERVICE, "--init")
-        future_results = yield self._ctx.commit()
-        await future_results
+        sent = yield self._ctx.commit()
+        await sent
+
+        # start HTTP server in separate thread
+        self._ctx.run("/bin/sh", "-c", f"nohup python {self.FTSE_SERVICE_SERVER} run &")
+        #self._ctx.run(self.FTSE_SERVICE_SERVER)
+        servicestart = yield self._ctx.commit()
+        await servicestart 
+        # delay is required or it will execute the next script before socket is created
+        await asyncio.sleep(5)
+
+        self._ctx.run(self.FTSE_SERVICE_CLIENT, "--init")
+        init_result = yield self._ctx.commit()
+        await init_result
+
         print("Start finished")
         print("--------------")
 
@@ -45,7 +58,7 @@ class FtseService(Service):
             signal = await self._listen()
             cmd = signal.message
             cmd = shlex.quote(cmd)
-            self._ctx.run(self.FTSE_SERVICE, "--search", cmd)
+            self._ctx.run(self.FTSE_SERVICE_CLIENT, "--search", cmd)
 
             future_results = yield self._ctx.commit()
             results = await future_results

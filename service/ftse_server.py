@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-import argparse
 import json
 import os
 import shutil
 from pathlib import Path
 from whoosh.fields import Schema, TEXT, NUMERIC, ID
-from whoosh.index import create_in, open_dir
+from whoosh.index import FileIndex, create_in
 from whoosh.qparser import QueryParser
 from whoosh.highlight import set_matched_filter
 from whoosh.searching import Hit
+import rpyc
+from rpyc.utils.server import ThreadedServer
+from threading import Thread
 
 IN_PATH = Path("/golem/in").absolute()
 OUT_PATH = Path("/golem/out").absolute()
@@ -35,7 +37,11 @@ class FtseLineResult:
         self.positions = positions
 
 
-class FullTextSearchEngine:
+class FullTextSearchEngine(rpyc.Service):
+    def exposed_init_index(self, in_path: str, out_path: str):
+        server.ix = self.init_index(in_path, out_path)
+        return True
+
     def init_index(self, in_path: str, out_path: str):
         index_path = self.get_index_path(out_path)
         if os.path.exists(index_path):
@@ -53,6 +59,7 @@ class FullTextSearchEngine:
                         path=filename,
                     )
         writer.commit()
+        return ix
 
     def get_index_path(self, out_path: str):
         out_path = OUT_PATH if out_path.isspace() == True else out_path
@@ -61,7 +68,7 @@ class FullTextSearchEngine:
         return index_path
 
     # Source: https://github.com/mchaput/whoosh/blob/main/src/whoosh/highlight.py
-    def get_positions(self, hitobj: Hit, fieldname: str):
+    def exposed_get_positions(self, hitobj: Hit, fieldname: str):
         results = hitobj.results
         schema = results.searcher.schema
         field = schema[fieldname]
@@ -86,7 +93,7 @@ class FullTextSearchEngine:
                 positions.append(t.startchar)
         return positions
 
-    def read_file(self, path: str):
+    def exposed_read_file(self, path: str):
         f = open(path, "r")
         content = f.read()
         f.close()
@@ -95,15 +102,18 @@ class FullTextSearchEngine:
     def obj_dict(self, obj):
         return obj.__dict__
 
-    def search(self, out_path: str, term: str):
-        ix = open_dir(self.get_index_path(out_path))
+    def exposed_search(self, term: str):
+        ix = server.ix
+        return self.search(ix, term)
+
+    def search(self, ix: FileIndex, term: str):
         with ix.searcher() as searcher:
             fieldname = "content"
             query = QueryParser(fieldname, ix.schema).parse(term)
             search_result = searcher.search(query, terms=True)
             results = dict()
             for result in search_result:
-                positions = self.get_positions(result, fieldname)
+                positions = self.exposed_get_positions(result, fieldname)
                 filename = result['path']
                 if filename in results:
                     results[filename].lines.append(
@@ -120,47 +130,13 @@ class FullTextSearchEngine:
             return json.dumps(list(results.values()), default=self.obj_dict)
 
 
-ftse = FullTextSearchEngine()
-
-
-def test():
-    print("test")
-
-
-def init():
-    ftse.init_index(IN_PATH.as_posix(), OUT_PATH.as_posix())
-    print("init success")
-
-
-def search(term: str):
-    result = ftse.search(OUT_PATH.as_posix(), term)
-    print(result)
-
-
-def dump(filename: str):
-    content = ftse.read_file(os.path.join(IN_PATH, filename))
-    print(content)
-
-
-def get_arg_parser():
-    parser = argparse.ArgumentParser(description="ftse service")
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--test", action="store_true")
-    group.add_argument("--init", action="store_true")
-    group.add_argument("--search", help="Provide a term to be searched for")
-    group.add_argument("--dump", help="Provide a filename to be dumped")
-    return parser
-
-
 if __name__ == "__main__":
-    arg_parser = get_arg_parser()
-    args = arg_parser.parse_args()
-
-    if args.test:
-        test()
-    elif args.init:
-        init()
-    elif args.search:
-        search(args.search)
-    elif args.dump:
-        dump(args.dump)
+    print("Server starting")
+    server = ThreadedServer(
+        FullTextSearchEngine,
+        socket_path='/golem/run/uds_socket')
+    t = Thread(target=server.start)
+    t.daemon = True
+    t.start()
+    t.join()
+    print("Server started")
